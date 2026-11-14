@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% macro error_box() %}
+<div class="error-page">
+<span class="mini-label">HOOKWATCH · {{code}}</span>
+<h1>One thing to check.</h1>
+<p>{{message}}</p>
+<a class="button primary" href="/">Back to dashboard →</a>
+</div>
+{% endmacro %}
+{% block content %}{{error_box()}}{% endblock %}{% block public %}{{error_box()}}{% endblock %}

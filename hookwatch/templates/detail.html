@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block content %}
+<a class="back" href="/">← Event inbox</a>
+<div class="heading">
+<div>
+<span class="mini-label">EVENT #{{event.id}}</span>
+<h1>{{event.event_type}}</h1>
+<p class="muted mono">{{event.external_id}}</p>
+</div>
+<span class="badge {{event.status}}">{{event.status|capitalize}}</span>
+</div>
+<div class="detail-grid">
+<div>
+<section class="panel padded">
+<h2>Payload</h2>
+<p class="muted small">Stored after signature verification and schema validation.</p>
+<pre>{{event.payload|prettyjson}}</pre>
+</section>
+<section class="panel padded">
+<h2>Processing attempts</h2>
+{% for attempt in attempts %}
+<article class="attempt">
+<div>
+<b>Attempt {{attempt.number}}</b>
+<span class="badge {{'succeeded' if attempt.outcome=='success' else 'failed'}}">{{attempt.outcome}}</span>
+</div>
+<p>{{attempt.message}}</p>
+<small>{{attempt.created_at|utc}} UTC · {{'%.3f'|format(attempt.duration_seconds*1000)}} ms</small>
+</article>
+{% else %}
+<p class="muted small">No completed attempts yet. Run the worker to process eligible events.</p>
+{% endfor %}
+</section>
+</div>
+<div>
+<section class="panel padded">
+<h2>Event details</h2>
+<dl>
+<dt>Source</dt>
+<dd>{{event.source}}</dd>
+<dt>Received</dt>
+<dd>{{event.received_at|utc}} UTC</dd>
+<dt>Attempts in this run</dt>
+<dd>{{event.attempts}} / {{event.max_attempts}}</dd>
+{% if event.status=='retrying' %}
+<dt>Next eligible attempt</dt>
+<dd>{{event.next_attempt|utc}} UTC</dd>
+{% endif %}
+</dl>
+{% if event.result %}
+<div class="result-note">{{event.result}}</div>
+{% endif %}{% if event.status=='failed' %}
+<form method="post" action="{{url_for('retry_route',event_id=event.id)}}">
+<input type="hidden" name="csrf" value="{{csrf}}">
+<button class="primary full">Requeue event →</button>
+</form>
+<p class="muted small">Starts a fresh attempt cycle and preserves history. Fix persistent processor failures before retrying.</p>
+{% endif %}
+</section>
+<section class="panel padded">
+<h2>Activity trail</h2>
+{% for action in actions %}
+<article class="activity">
+<span>●</span>
+<div>
+<p>{{action.message}}</p>
+<small>{{action.created_at|utc}} UTC</small>
+</div>
+</article>
+{% endfor %}
+</section>
+</div>
+</div>
+{% endblock %}

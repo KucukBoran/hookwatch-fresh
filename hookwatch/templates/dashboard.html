@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="heading">
+<div>
+<span class="mini-label">YOUR INTEGRATIONS, IN FOCUS</span>
+<h1>Event overview<span>.</span>
+</h1>
+<p class="muted">A clear picture of every event in your pipeline.</p>
+</div>
+<div class="heading-actions">
+<form method="post" action="{{ url_for('tick') }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<button>▷ Run worker once</button>
+</form>
+{% if demo_mode %}
+<form method="post" action="{{ url_for('demo_event') }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<button class="primary">＋ Demo event</button>
+</form>
+{% endif %}
+</div>
+</div>
+<div class="stats">
+<article>
+<div>Total accepted<span>↙︎</span>
+</div>
+<strong>{{stats.total}}</strong>
+<small>Unique persisted events</small>
+</article>
+<article>
+<div>Success rate<span>✓</span>
+</div>
+<strong>{{stats.success_rate|string + '%' if stats.success_rate is not none else '—'}}</strong>
+<small>Completed events only</small>
+</article>
+<article>
+<div>In the queue<span>≋</span>
+</div>
+<strong>{{stats.counts.queued+stats.counts.retrying}}</strong>
+<small>Queued + waiting to retry</small>
+</article>
+<article>
+<div>Failed events<span>!</span>
+</div>
+<strong>{{stats.counts.failed}}</strong>
+<small>Ready for investigation</small>
+</article>
+</div>
+<div class="overview-row">
+<section class="panel traffic-panel">
+<div class="panel-heading">
+<div>
+<h2>Incoming traffic</h2>
+<p class="muted">Accepted events over the last 12 hours</p>
+</div>
+<span class="period">HOURLY · UTC</span>
+</div>
+<div class="chart" role="img" aria-label="Hourly accepted event counts: {% for point in chart %}{{point.hour}}: {{point.count}}{% if not loop.last %}, {% endif %}{% endfor %}">
+{% for point in chart %}
+<div class="chart-column">
+<span class="chart-count">{{point.count}}</span>
+<div class="chart-track">
+<div class="chart-bar" style="height:{{point.height}}%" title="{{point.hour}} UTC: {{point.count}} events">
+</div>
+</div>
+<small>{{point.hour}}</small>
+</div>
+{% endfor %}
+</div>
+</section>
+<section class="pipeline-card">
+<span class="mini-label">PROCESSING MODEL</span>
+<h2>Receive once.<br>Retry with care.</h2>
+<p>Events are stored before processing. Failed attempts use exponential backoff.</p>
+<div>
+<span class="green-dot">
+</span> HMAC signature verification</div>
+<div>
+<span class="green-dot">
+</span> Source + event ID deduplication</div>
+<div>
+<span class="green-dot">
+</span> Durable worker leases</div>
+</section>
+</div>
+<section class="panel event-panel">
+<div class="panel-heading">
+<div>
+<h2>Event inbox <span class="count-chip">{{listing.total}}</span>
+</h2>
+<p class="muted">Follow the trail from acceptance to outcome.</p>
+</div>
+<a class="button" href="{{url_for('dashboard',status=listing.status,source=listing.source,page=listing.page)}}">↻ Refresh</a>
+</div>
+<form class="filters" method="get">
+<label>
+<span class="sr-only">Status</span>
+<select name="status">
+<option value="all">All statuses</option>
+{% for status in statuses %}
+<option value="{{status}}" {% if status==listing.status %}selected{% endif %}>{{status|capitalize}}</option>
+{% endfor %}
+</select>
+</label>
+<label>
+<span class="sr-only">Source</span>
+<select name="source">
+<option value="">All sources</option>
+{% for source in sources %}
+<option value="{{source}}" {% if source==listing.source %}selected{% endif %}>{{source}}</option>
+{% endfor %}
+</select>
+</label>
+<button>Apply filters →</button>
+{% if listing.status!='all' or listing.source %}
+<a href="/">Clear</a>
+{% endif %}
+</form>
+<div class="table-scroll">
+<table>
+<thead>
+<tr>
+<th>EVENT</th>
+<th>SOURCE</th>
+<th>STATUS</th>
+<th>ATTEMPTS</th>
+<th>RECEIVED · UTC</th>
+<th>
+</th>
+</tr>
+</thead>
+<tbody>
+{% for event in listing['items'] %}
+<tr>
+<td>
+<a class="event-title" href="{{url_for('detail',event_id=event.id)}}">
+<span class="event-icon">⌁</span>
+<span>
+<b>{{event.event_type}}</b>
+<small>{{event.external_id}}</small>
+</span>
+</a>
+</td>
+<td>
+<span class="source">{{event.source}}</span>
+</td>
+<td>
+<span class="badge {{event.status}}">
+<span>●</span>{{event.status|capitalize}}</span>
+</td>
+<td class="muted">{{event.attempts}} <span class="attempt-limit">/ {{event.max_attempts}}</span>
+</td>
+<td class="muted date">{{event.received_at|utc}}</td>
+<td>
+<a class="open" aria-label="Open {{event.external_id}}" href="{{url_for('detail',event_id=event.id)}}">↗︎</a>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% if not listing['items'] %}
+<div class="empty">
+<h3>No events in this view.</h3>
+<p>Send a signed webhook or try another filter.</p>
+</div>
+{% endif %}
+</div>
+<footer class="table-footer">
+<span>{{listing.total}} events · Page {{listing.page}} of {{[(listing.total+19)//20,1]|max}}</span>
+<div>
+{% if listing.page>1 %}
+<a href="{{url_for('dashboard',page=listing.page-1,status=listing.status,source=listing.source)}}">← Previous</a>
+{% endif %}{% if listing.page*20<listing.total %}
+<a href="{{url_for('dashboard',page=listing.page+1,status=listing.status,source=listing.source)}}">Next →</a>
+{% endif %}
+</div>
+</footer>
+</section>
+{% endblock %}

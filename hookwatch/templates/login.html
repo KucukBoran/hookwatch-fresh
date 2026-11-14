@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block public %}
+<div class="login">
+<section class="login-story">
+<a class="brand" href="/">
+<span class="brand-icon">⌁</span>hookwatch<span>.</span>
+</a>
+<div>
+<span class="mini-label">EVERY EVENT, ACCOUNTED FOR</span>
+<h1>Know what arrived.<br>See what happened.</h1>
+<p>A signed webhook inbox with durable processing, retries and a clear trail.</p>
+<div class="login-flow">
+<span>01 / Receive</span>
+<span>02 / Process</span>
+<span>03 / Observe</span>
+</div>
+</div>
+<small>Built for curious developers.</small>
+</section>
+<section class="login-panel">
+<form method="post">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<span class="mini-label">DEVELOPER ACCESS</span>
+<h2>Your events are waiting.</h2>
+<p class="muted">Use the admin token from your local configuration.</p>
+{% if error %}
+<p class="error" role="alert">{{ error }}</p>
+{% endif %}
+<label>Admin token<input name="token" type="password" autocomplete="current-password" required maxlength="256" {% if demo_mode %}value="demo-admin-token-change-me"{% endif %}>
+</label>
+<button class="primary full">Open dashboard →</button>
+<div class="demo-note">
+<b>{{ 'Portfolio demo' if demo_mode else 'Private workspace' }}</b>
+<p>
+{% if demo_mode %}Sample events are fictional. You can inspect their payloads and process them locally.{% else %}Ask the operator for an admin token. Webhook signatures use a separate secret.{% endif %}
+</p>
+</div>
+</form>
+</section>
+</div>
+{% endblock %}
